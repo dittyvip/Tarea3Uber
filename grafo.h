@@ -2,19 +2,23 @@
 #define GRAFO_H
 
 struct Grafo {
-    int** ady;     // Matriz de adyacencia dinámica
-    int nodos;     // Número de nodos
+    int** ady;
+    int numnodos;
+    int numArcos;
 
-    // Constructor (inicializa en nullptr)
     Grafo() {
         ady = nullptr;
-        nodos = 0;
+        numnodos = 0;
     }
 };
 
 void crearGrafo(Grafo& g, int n);
 void agregarArco(Grafo& g, int origen, int destino);
 void destruirGrafo(Grafo& g);
-void mostrarGrafo(const Grafo& g); // (opcional para debug)
+void mostrarGrafo(const Grafo& g);
+void leerArchivo(const std::string& nombreArchivo, Grafo& grafo, int*& conductores, int& cantidadConductores);
+void bfs_ruta(const Grafo& g, int inicio, int* distancias, int* padres);
+int* reconstruirCamino(int* padre, int destino, int& largo);
+int solicitar_uber(Grafo& g, int origen, int destino, int*& conductores, int nConductores);
 
 #endif
