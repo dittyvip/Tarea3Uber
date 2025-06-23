@@ -1,152 +1,144 @@
 #include <iostream>
 #include <fstream>
-#include <string>
-#include <iostream>
 #include "grafo.h"
-using namespace std;
 
-const int MAX_NODOS = 100;  // por si se amplía después
-
-struct Grafo {
-    int** ady;  // matriz de adyacencia
-    int numNodos;
-    int numArcos;
-};
-
-void inicializarGrafo(Grafo &g, int nodos) {
-    g.numNodos = nodos;
-    for (int i = 0; i < nodos; ++i)
-        for (int j = 0; j < nodos; ++j)
-            g.ady[i][j] = 0;  // sin conexión
-}
-
-void agregarArco(Grafo &g, int origen, int destino) {
-    g.ady[origen - 1][destino - 1] = 1;  // ajustado a índices desde 0
-}
-
-void crearGrafo(Grafo& g, int n) {
-    g.numNodos= n;
-    g.ady = new int*[n];
-    for (int i = 0; i < n; ++i) {
-        g.ady[i] = new int[n];
-        for (int j = 0; j < n; ++j)
-            g.ady[i][j] = 0; // Inicializamos sin conexiones
-    }
-}
-
-void agregarArco(Grafo& g, int origen, int destino) {
-    // Se resta 1 porque los nodos vienen numerados desde 1 en el input
-    g.ady[origen - 1][destino - 1] = 1;
-}
-
-void destruirGrafo(Grafo& g) {
-    for (int i = 0; i < g.numNodos; ++i)
-        delete[] g.ady[i];
-    delete[] g.ady;
-    g.ady = nullptr;
-    g.numNodos = 0;
-}
-
-void mostrarGrafo(const Grafo& g) {
-    std::cout << "Matriz de adyacencia:\n";
-    for (int i = 0; i < g.numNodos; ++i) {
-        for (int j = 0; j < g.numNodos; ++j)
-            std::cout << g.ady[i][j] << " ";
-        std::cout << "\n";
-    }
-}
-
-void cargarDatosDesdeArchivo(const char* nombreArchivo, Grafo& g, int*& conductores, int& nConductores) {
-    ifstream archivo(nombreArchivo);
-
-    if (!archivo) {
-        cout << "No se pudo abrir el archivo.\n";
-        return;
+void bfs_ruta(const Grafo& g, int inicio, int* distancia, int* padre) {
+    for (int i = 0; i < g.numnodos; i++) {
+        distancia[i] = -1;
+        padre[i] = -1;
     }
 
-    int nodos, arcos;
-    archivo >> nodos >> arcos >> nConductores;
+    int* cola = new int[g.numnodos];
+    int frente = 0, fin = 0;
 
-    crearGrafo(g, nodos); // usamos nuestro TDA
+    distancia[inicio] = 0;
+    cola[fin++] = inicio;
 
-    for (int i = 0; i < arcos; ++i) {
-        int origen, destino;
-        archivo >> origen >> destino;
-        agregarArco(g, origen, destino); // función del TDA
+    while (frente < fin) {
+        int actual = cola[frente++];
+        for (int i = 0; i < g.numnodos; ++i) {
+            if (g.ady[actual][i] == 1 && distancia[i] == -1) {
+                distancia[i] = distancia[actual] + 1;
+                padre[i] = actual;
+                cola[fin++] = i;
+            }
+        }
     }
 
-    // Crear arreglo dinámico de conductores
-    conductores = new int[nConductores];
+    delete[] cola;
+}
+int* reconstruirCamino(int* padre, int destino, int& largo) {
+    int* temp = new int[100]; // tamaño seguro
+    int idx = 0;
+
+    while (destino != -1) {
+        temp[idx++] = destino + 1;  // convertir a índice desde 1
+        destino = padre[destino];
+    }
+
+    int* camino = new int[idx];
+    for (int i = 0; i < idx; ++i)
+        camino[i] = temp[idx - i - 1];
+
+    largo = idx;
+    delete[] temp;
+    return camino;
+}
+
+int solicitar_uber(Grafo& g, int origen, int destino, int*& conductores, int nConductores) {
+    origen--; destino--;
+
+    int* dist = new int[g.numnodos];
+    int* padre = new int[g.numnodos];
+    int mejorDist = -1, mejorIndice = -1, mejorNodo = -1;
+
+    // Buscar conductor más cercano
     for (int i = 0; i < nConductores; ++i) {
-        archivo >> conductores[i];
+        int posCond = conductores[i] - 1;
+        bfs_ruta(g, posCond + 1, dist, padre);
+
+        if (dist[origen] != -1) {
+            if (mejorDist == -1 || dist[origen] < mejorDist ||
+               (dist[origen] == mejorDist && conductores[i] < conductores[mejorIndice])) {
+                mejorDist = dist[origen];
+                mejorIndice = i;
+                mejorNodo = posCond;
+            }
+        }
     }
 
-    archivo.close();
+    if (mejorDist == -1) {
+        std::cout << "No hay conductor disponible para llegar al pasajero.\n";
+        delete[] dist;
+        delete[] padre;
+        return -1;
+    }
+
+    // Ruta conductor → pasajero
+    bfs_ruta(g, mejorNodo + 1, dist, padre);
+    int largo1;
+    int* ruta1 = reconstruirCamino(padre, origen, largo1);
+    int DConductor = dist[origen];
+
+    // Ruta pasajero → destino
+    bfs_ruta(g, origen + 1, dist, padre);
+    if (dist[destino] == -1) {
+        std::cout << "El destino no es alcanzable desde el origen.\n";
+        delete[] dist;
+        delete[] padre;
+        delete[] ruta1;
+        return -1;
+    }
+
+    int largo2;
+    int* ruta2 = reconstruirCamino(padre, destino, largo2);
+    int DViaje = dist[destino];
+
+    std::cout << "Ruta del conductor al pasajero: ";
+    for (int i = 0; i < largo1; ++i) std::cout << ruta1[i] << " ";
+    std::cout << "\n";
+
+    std::cout << "Ruta del pasajero al destino: ";
+    for (int i = 0; i < largo2; ++i) std::cout << ruta2[i] << " ";
+    std::cout << "\n";
+
+    int costo = 300 * DConductor + 500 * DViaje;
+    std::cout << "Costo del viaje: " << costo << "\n";
+
+    conductores[mejorIndice] = destino + 1; // actualizar posición conductor
+
+    delete[] dist;
+    delete[] padre;
+    delete[] ruta1;
+    delete[] ruta2;
+
+    return costo;
 }
+
+
 int main() {
     Grafo g;
-    int numNodos, numArcos, numConductores;
-    int* conductores = nullptr;
-    int nConductores = 0;
+    int* conductores;
+    int cantidadConductores;
 
-    ifstream archivo("data.txt");
-    if (!archivo) {
-        cout << "Error al abrir el archivo" << endl;
-        return 1;
-    }
+    leerArchivo("data1.txt", g, conductores, cantidadConductores);
+    mostrarGrafo(g);
 
-    archivo >> numNodos >> numArcos >> numConductores;
-    inicializarGrafo(g, numNodos);
-    g.numArcos = numArcos;
+    std::cout << "Conductores iniciales: ";
+    for (int i = 0; i < cantidadConductores; ++i)
+        std::cout << conductores[i] << " ";
+    std::cout << "\n";
 
-    // Leer arcos
-    for (int i = 0; i < numArcos; ++i) {
+    while (true) {
         int origen, destino;
-        archivo >> origen >> destino;
-        agregarArco(g, origen, destino);
+        std::cout << "Ingrese origen y destino (-1 -1 para salir): ";
+        std::cin >> origen >> destino;
+        if (origen == -1 && destino == -1) break;
+
+        solicitar_uber(g, origen, destino, conductores, cantidadConductores);
     }
 
-    // Leer ubicaciones de conductores
-    for (int i = 0; i < numConductores; ++i) {
-        archivo >> conductores[i];
-    }
-
-    archivo.close();
-
-    // Mostrar grafo (opcional para pruebas)
-    cout << "Matriz de adyacencia:" << endl;
-    for (int i = 0; i < numNodos; ++i) {
-        for (int j = 0; j < numNodos; ++j)
-            cout << g.ady[i][j] << " ";
-        cout << endl;
-    }
-
-    cout << "Conductores en nodos: ";
-    for (int i = 0; i < numConductores; ++i)
-        cout << conductores[i] << " ";
-    cout << endl;
-
-
-    Grafo ciudad;
-    crearGrafo(ciudad, 4);
-
-    agregarArco(ciudad, 1, 2);
-    agregarArco(ciudad, 2, 3);
-    agregarArco(ciudad, 3, 4);
-
-    mostrarGrafo(ciudad);
-
-    cargarDatosDesdeArchivo("data1.txt", ciudad, conductores, nConductores);
-
-    cout << "Datos cargados correctamente.\n";
-    cout << "Cantidad de conductores: " << nConductores << "\n";
-
-    // mostrarGrafo(ciudad); // opcional
-    // mostrar ubicaciones de los conductores
-    for (int i = 0; i < nConductores; ++i)
-        cout << "Conductor " << i + 1 << " en nodo " << conductores[i] << "\n";
     delete[] conductores;
     destruirGrafo(g);
-    
     return 0;
 }
