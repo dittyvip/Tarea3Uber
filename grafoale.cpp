@@ -115,10 +115,6 @@ public:
         delete[] cola;
     }
 };
-
-
-
-
 //Lee el archivo de entrada y construye el grafo
 
 void cargarGrafo(const char* nombreArchivo, Grafo*& grafo, int*& arregloConductores, int& cantidadConductores) {
@@ -151,8 +147,8 @@ void cargarGrafo(const char* nombreArchivo, Grafo*& grafo, int*& arregloConducto
     cantidadConductores = cantidadConductoresArchivo; // Asignar la cantidad de conductores leída
 
     archivoEntrada.close(); // Cerrar el archivo
-
-int main() {
+}
+int main(){
     Grafo* grafo = nullptr;
     int* conductores = nullptr;
     int cantidadConductores = 0;
@@ -166,3 +162,4 @@ int main() {
 
     return 0;
 }
+
