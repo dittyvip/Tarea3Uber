@@ -143,14 +143,14 @@ void reconstruir_ruta(int* padres, int inicio, int fin, int*& ruta, int& largo) 
 void solicitar_uber(Grafo& g, int* conductores, int cantidadConductores,
                     int origen, int destino,
                     int*& rutaFinal, int& largoRuta, int& costo) {
-    int* dist = new int[g.nodos];    // Arreglo para distancias en BFS
-    int* padres = new int[g.nodos];  // Arreglo para padres en BFS
+    int* dist = new int[g.numnodos];    // Arreglo para distancias en BFS
+    int* padres = new int[g.numnodos];  // Arreglo para padres en BFS
 
     // Paso 1: BFS desde el pasajero para encontrar el conductor más cercano
     bfs(g, origen, dist, padres);
 
     int mejorConductor = -1;         // Índice del mejor conductor en el arreglo
-    int distanciaMin = g.nodos + 1;  // Inicializa la distancia mínima con un valor grande
+    int distanciaMin = g.numnodos + 1;  // Inicializa la distancia mínima con un valor grande
 
     // Busca el conductor más cercano al origen
     for (int i = 0; i < cantidadConductores; ++i) {
