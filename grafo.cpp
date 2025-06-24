@@ -140,78 +140,24 @@ void reconstruir_ruta(int* padres, int inicio, int fin, int*& ruta, int& largo) 
     }
 }
 
-void solicitar_uber(Grafo& g, int* conductores, int cantidadConductores,
-                    int origen, int destino,
-                    int*& rutaFinal, int& largoRuta, int& costo) {
-    int* dist = new int[g.numnodos];    // Arreglo para distancias en BFS
-    int* padres = new int[g.numnodos];  // Arreglo para padres en BFS
+void solicitar_uber(Grafo& g, int origen, int destino, int*& ruta, int& largo, int& costo) {
+    int* dist = new int[g.numnodos];    // Reserva memoria para el arreglo de distancias
+    int* padres = new int[g.numnodos];  // Reserva memoria para el arreglo de padres
 
-    // Paso 1: BFS desde el pasajero para encontrar el conductor más cercano
-    bfs(g, origen, dist, padres);
+    bfs(g, origen, dist, padres);       // Realiza BFS desde el nodo origen
 
-    int mejorConductor = -1;         // Índice del mejor conductor en el arreglo
-    int distanciaMin = g.numnodos + 1;  // Inicializa la distancia mínima con un valor grande
-
-    // Busca el conductor más cercano al origen
-    for (int i = 0; i < cantidadConductores; ++i) {
-        int idx = conductores[i] - 1; // Índice base 0 del conductor
-        if (dist[idx] != -1 && dist[idx] < distanciaMin) { // Si el conductor es alcanzable y más cercano
-            distanciaMin = dist[idx];
-            mejorConductor = i;
-        }
+    // Si el destino no es alcanzable desde el origen
+    if (dist[destino - 1] == -1) {
+        ruta = nullptr; // No hay ruta posible
+        largo = 0;      // Longitud de la ruta es 0
+        costo = -1;     // Costo -1 indica que no hay ruta
+    } else {
+        reconstruir_ruta(padres, origen, destino, ruta, largo); // Reconstruye la ruta encontrada
+        costo = 500 * (largo - 1); // Calcula el costo (500 por cada tramo)
     }
 
-    // Si no hay conductor alcanzable, termina y retorna sin ruta
-    if (mejorConductor == -1) {
-        costo = -1;
-        largoRuta = 0;
-        rutaFinal = nullptr;
-        delete[] dist;
-        delete[] padres;
-        return;
-    }
-
-    int conductorNodo = conductores[mejorConductor]; // Nodo donde está el mejor conductor
-
-    // Paso 2: BFS desde origen a destino para verificar si hay ruta
-    bfs(g, origen, dist, padres);
-    if (dist[destino - 1] == -1) { // Si no hay ruta al destino
-        costo = -1;
-        largoRuta = 0;
-        rutaFinal = nullptr;
-        delete[] dist;
-        delete[] padres;
-        return;
-    }
-
-    int* ruta1; int largo1; // Ruta del conductor al origen
-    int* ruta2; int largo2; // Ruta del origen al destino
-
-    // BFS y reconstrucción de ruta del conductor al origen
-    bfs(g, conductorNodo, dist, padres);
-    reconstruir_ruta(padres, conductorNodo, origen, ruta1, largo1);
-
-    // BFS y reconstrucción de ruta del origen al destino
-    bfs(g, origen, dist, padres);
-    reconstruir_ruta(padres, origen, destino, ruta2, largo2);
-
-    // Paso 3: unir rutas (evita repetir el nodo origen)
-    largoRuta = largo1 + largo2 - 1;
-    rutaFinal = new int[largoRuta];
-    for (int i = 0; i < largo1; ++i) rutaFinal[i] = ruta1[i]; // Copia ruta del conductor al origen
-    for (int i = 1; i < largo2; ++i) rutaFinal[largo1 + i - 1] = ruta2[i]; // Copia ruta del origen al destino (sin repetir el origen)
-
-    // Paso 4: calcular costo (300 por cada tramo conductor-origen, 500 por cada tramo origen-destino)
-    costo = 300 * (largo1 - 1) + 500 * (largo2 - 1);
-
-    // Paso 5: actualizar la posición del conductor (ahora está en el destino)
-    conductores[mejorConductor] = destino;
-
-    // Libera la memoria dinámica usada
-    delete[] dist;
-    delete[] padres;
-    delete[] ruta1;
-    delete[] ruta2;
+    delete[] dist;   // Libera la memoria del arreglo de distancias
+    delete[] padres; // Libera la memoria del arreglo de padres
 }
 
 
@@ -220,9 +166,7 @@ int main() {
     int* conductores;
     int cantidadConductores;
 
-    // Leer el grafo y los conductores desde el archivo
     leerArchivo("data1.txt", g, conductores, cantidadConductores);
-    // Si quiere probar con el otro mapa use "data2.txt"
 
     while (true) {
         int origen, destino;
@@ -236,7 +180,7 @@ int main() {
         int largoRuta = 0;
         int costo;
 
-        solicitar_uber(g, conductores, cantidadConductores, origen, destino, ruta, largoRuta, costo);
+        solicitar_uber(g, origen, destino, ruta, largoRuta, costo);
 
         if (costo == -1) {
             cout << "Ruta: {} - Costo: -1" << endl;
@@ -256,7 +200,3 @@ int main() {
     delete[] conductores;
     return 0;
 }
-
-
-
-
