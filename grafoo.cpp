@@ -127,23 +127,73 @@ void reconstruir_ruta(int* padres, int inicio, int fin, int*& ruta, int& largo) 
     }
 }
 
-void solicitar_uber(Grafo& g, int origen, int destino, int*& ruta, int& largo, int& costo) {
-    int* dist = new int[g.numnodos];    // Arreglo para distancias
-    int* padres = new int[g.numnodos];  // Arreglo para padres
+void solicitar_uber(Grafo& g, int* conductores, int cantidadConductores, int origen, int destino, int*& ruta, int& largo, int& costo) {
+    int mejorConductor = -1;
+    int minDistConductor = g.numnodos + 1;
+    int* dist = new int[g.numnodos];
+    int* padres = new int[g.numnodos];
 
-    bfs(g, origen, dist, padres);       // Realiza BFS desde el nodo origen
+    // 1. Buscar el conductor más cercano al origen
+    for (int i = 0; i < cantidadConductores; ++i) {
+        bfs(g, conductores[i], dist, padres);
+        if (dist[origen - 1] != -1 && dist[origen - 1] < minDistConductor) {
+            minDistConductor = dist[origen - 1];
+            mejorConductor = i;
+        }
+    }
 
-    if (dist[destino - 1] == -1) {     // Si el destino no es alcanzable
+    if (mejorConductor == -1) {
         ruta = nullptr;
         largo = 0;
         costo = -1;
-    } else {
-        reconstruir_ruta(padres, origen, destino, ruta, largo); // Reconstruye la ruta
-        costo = 500 * (largo - 1); // Calcula el costo (500 por cada tramo)
+        delete[] dist;
+        delete[] padres;
+        return;
     }
 
-    delete[] dist;   // Libera la memoria de distancias
-    delete[] padres; // Libera la memoria de padres
+    // 2. Reconstruir la ruta del conductor al origen
+    int* rutaConductor = nullptr;
+    int largoConductor = 0;
+    bfs(g, conductores[mejorConductor], dist, padres);
+    if (dist[origen - 1] == -1) {
+        ruta = nullptr;
+        largo = 0;
+        costo = -1;
+        delete[] dist;
+        delete[] padres;
+        return;
+    }
+    reconstruir_ruta(padres, conductores[mejorConductor], origen, rutaConductor, largoConductor);
+
+    int costoConductor = 300 * (largoConductor - 1);
+    if (largoConductor > 1)
+        costoConductor = 300 * (largoConductor - 2); // -2 porque no se cobra el último tramo (el de recogida)
+    else
+        costoConductor = 0; // Si ya está en el origen, no cobra nada
+
+    // 3. Reconstruir la ruta del pasajero al destino
+    bfs(g, origen, dist, padres);
+    if (dist[destino - 1] == -1) {
+        ruta = nullptr;
+        largo = 0;
+        costo = -1;
+        delete[] dist;
+        delete[] padres;
+        delete[] rutaConductor;
+        return;
+    }
+    reconstruir_ruta(padres, origen, destino, ruta, largo);
+    int costoPasajero = 500 * (largo - 1);
+
+    // 4. Sumar ambos costos
+    costo = costoConductor + costoPasajero;
+
+    // 5. Actualizar la posición del conductor
+    conductores[mejorConductor] = destino;
+
+    delete[] dist;
+    delete[] padres;
+    delete[] rutaConductor;
 }
 
 int main() {
@@ -165,7 +215,7 @@ int main() {
         int largoRuta = 0;
         int costo;
 
-        solicitar_uber(g, origen, destino, ruta, largoRuta, costo); // Calcula la ruta y el costo
+        solicitar_uber(g, conductores, cantidadConductores, origen, destino, ruta, largoRuta, costo); // Calcula la ruta y el costo
 
         if (costo == -1) {
             cout << "Ruta: {} - Costo: -1" << endl; // No hay ruta posible
