@@ -2,7 +2,7 @@
 #include <fstream>
 #include "grafo.h"
 
-void bfs_ruta(const Grafo& g, int inicio, int* distancia, int* padre) {
+void bfs_ruta(const Grafo& g, int inicio, int* distancia, int* padre){
     for (int i = 0; i < g.numnodos; i++) {
         distancia[i] = -1;
         padre[i] = -1;
@@ -31,7 +31,7 @@ int* reconstruirCamino(int* padre, int destino, int& largo) {
     int* temp = new int[100]; // tamaño seguro
     int idx = 0;
 
-    while (destino != -1) {
+    while(destino != -1) {
         temp[idx++] = destino + 1;  // convertir a índice desde 1
         destino = padre[destino];
     }
@@ -53,7 +53,7 @@ int solicitar_uber(Grafo& g, int origen, int destino, int*& conductores, int nCo
     int mejorDist = -1, mejorIndice = -1, mejorNodo = -1;
 
     // Buscar conductor más cercano
-    for (int i = 0; i < nConductores; ++i) {
+    for(int i = 0; i < nConductores; ++i) {
         int posCond = conductores[i] - 1;
         bfs_ruta(g, posCond + 1, dist, padre);
 
